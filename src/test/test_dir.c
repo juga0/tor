@@ -1353,12 +1353,12 @@ test_dir_measured_bw_kb(void *arg)
   (void)arg;
   for (i = 0; strcmp(lines_fail[i], "end"); i++) {
     //fprintf(stderr, "Testing: %s\n", lines_fail[i]);
-    tt_assert(measured_bw_line_parse(&mbwl, lines_fail[i]) == -1);
+    tt_assert(measured_bw_line_parse(&mbwl, lines_fail[i], 1) == -1);
   }
 
   for (i = 0; strcmp(lines_pass[i], "end"); i++) {
     //fprintf(stderr, "Testing: %s %d\n", lines_pass[i], TOR_ISSPACE('\n'));
-    tt_assert(measured_bw_line_parse(&mbwl, lines_pass[i]) == 0);
+    tt_assert(measured_bw_line_parse(&mbwl, lines_pass[i], 1) == 0);
     tt_assert(mbwl.bw_kb == 1024);
     tt_assert(strcmp(mbwl.node_hex,
                 "557365204145532d32353620696e73746561642e") == 0);
