@@ -1353,16 +1353,64 @@ test_dir_measured_bw_kb(void *arg)
   (void)arg;
   for (i = 0; strcmp(lines_fail[i], "end"); i++) {
     //fprintf(stderr, "Testing: %s\n", lines_fail[i]);
+    /* Here it is assumed that header ended (1).
+     * There are incomplete lines in lines_fail */
     tt_assert(measured_bw_line_parse(&mbwl, lines_fail[i], 1) == -1);
   }
 
   for (i = 0; strcmp(lines_pass[i], "end"); i++) {
     //fprintf(stderr, "Testing: %s %d\n", lines_pass[i], TOR_ISSPACE('\n'));
+    /* Here it is asummed that header ended (1).
+     * lines_pass are all complete lines */
     tt_assert(measured_bw_line_parse(&mbwl, lines_pass[i], 1) == 0);
     tt_assert(mbwl.bw_kb == 1024);
     tt_assert(strcmp(mbwl.node_hex,
                 "557365204145532d32353620696e73746561642e") == 0);
   }
+
+ done:
+  return;
+}
+
+/* Test the possibility of additional header lines.
+ * Incomplete lines fail when header_ended is True and does not otherwise */
+static void
+test_dir_measured_bw_kb_header_ended(void *arg)
+{
+  (void)arg;
+  measured_bw_line_t mbwl;
+  const char *incomplete_no_node_id = "bw=1024\n";
+  /* node_id needs an space in the end to be valid! */
+  const char *incomplete_no_bw = \
+    "node_id=$557365204145532d32353620696e73746561642e \n";
+  const char *incomplete_no_bw_no_node_id = "rtt=300\n";
+
+  /* Here it is assumed the 1st complete line has being parsed already,
+   * therefore the following uncomplete lines fail */
+  tt_assert(measured_bw_line_parse(&mbwl, incomplete_no_bw, 1) == -1);
+  tt_assert(measured_bw_line_parse(&mbwl, incomplete_no_node_id, 1) == -1);
+  tt_assert(measured_bw_line_parse(
+    &mbwl, incomplete_no_bw_no_node_id, 1) == -1);
+
+ done:
+  return;
+}
+
+static void
+test_dir_measured_bw_kb_header_not_ended(void *arg)
+{
+  (void)arg;
+  measured_bw_line_t mbwl;
+  const char *incomplete_no_node_id = "bw=1024\n";
+  /* node_id needs an space in the end to be valid! */
+  const char *incomplete_no_bw = \
+    "node_id=$557365204145532d32353620696e73746561642e \n";
+
+  /* here it is assumed the 1st complete line has not being parsed already,
+   * therefore the following uncomplete lines success,
+   * as that would mean there are additional header lines */
+  tt_assert(measured_bw_line_parse(&mbwl, incomplete_no_bw, 0) == 0);
+  tt_assert(measured_bw_line_parse(&mbwl, incomplete_no_node_id, 0) == 0);
 
  done:
   return;
@@ -5459,6 +5507,8 @@ struct testcase_t dir_tests[] = {
   DIR_LEGACY(fp_pairs),
   DIR(split_fps, 0),
   DIR_LEGACY(measured_bw_kb),
+  DIR_LEGACY(measured_bw_kb_header_ended),
+  DIR_LEGACY(measured_bw_kb_header_not_ended),
   DIR_LEGACY(measured_bw_kb_cache),
   DIR_LEGACY(param_voting),
   DIR(param_voting_lookup, 0),
