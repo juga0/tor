@@ -2705,7 +2705,7 @@ measured_bw_line_parse(measured_bw_line_t *out, const char *orig_line,
   } else if (header_ended == 0) {
     /* To allow additional header lines, do not warn if there was no valid
      * bandwidth line yet */
-    log_debug(LD_DIRSERV, "No bw nor node_id found in bandwidth file line: %s",
+    log_debug(LD_DIRSERV, "Missing bw or node_id in bandwidth file line: %s",
              escaped(orig_line));
     tor_free(line);
     return 0;
