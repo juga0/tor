@@ -1552,6 +1552,15 @@ test_dir_measured_bw_kb(void *arg)
  done:
   return;
 }
+static void
+test_dir_dirserv_read_measured_bandwidths_emptyfile(void *arg)
+{
+  (void)arg;
+  const char empty[] = SRCDIR "/src/test/V3BandwidthsFileempty";
+  tt_int_op(-1, OP_EQ, dirserv_read_measured_bandwidths(empty, NULL));
+ done:
+  return;
+}
 
 #define MBWC_INIT_TIME 1000
 
@@ -5838,6 +5847,7 @@ struct testcase_t dir_tests[] = {
   DIR_LEGACY(versions),
   DIR_LEGACY(fp_pairs),
   DIR(split_fps, 0),
+  DIR_LEGACY(dirserv_read_measured_bandwidths_emptyfile),
   DIR_LEGACY(measured_bw_kb),
   DIR_LEGACY(measured_bw_kb_cache),
   DIR_LEGACY(param_voting),
