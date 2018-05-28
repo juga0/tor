@@ -205,6 +205,9 @@ format_networkstatus_vote(crypto_pk_t *private_signing_key,
     char *flags = smartlist_join_strings(v3_ns->known_flags, " ", 0, NULL);
     /* XXXX Abstraction violation: should be pulling a field out of v3_ns.*/
     char *flag_thresholds = dirserv_get_flag_thresholds_line();
+    // FIXME: possible function to get the timestamp (and software and 
+    // software_version) from
+    char *bandwidth_file = dirserv_get_bandwidth_file();
     char *params;
     authority_cert_t *cert = v3_ns->cert;
     char *methods =
@@ -235,6 +238,7 @@ format_networkstatus_vote(crypto_pk_t *private_signing_key,
                  "%s" /* packages */
                  "known-flags %s\n"
                  "flag-thresholds %s\n"
+                 "bandwidth-file %s\n"
                  "params %s\n"
                  "dir-source %s %s %s %s %d %d\n"
                  "contact %s\n"
@@ -249,6 +253,7 @@ format_networkstatus_vote(crypto_pk_t *private_signing_key,
                  packages,
                  flags,
                  flag_thresholds,
+                 bandwidth_file,
                  params,
                  voter->nickname, fingerprint, voter->address,
                  fmt_addr32(addr), voter->dir_port, voter->or_port,

@@ -1851,6 +1851,14 @@ dirserv_get_credible_bandwidth_kb(const routerinfo_t *ri)
   return bw_kb;
 }
 
+// FIXME: possible function to get the timestamp (and software and 
+// software_version) from
+char *
+dirserv_get_bandwidth_file(void)
+{
+  // where to retrive the timestamp from?
+}
+
 /** Give a statement of our current performance thresholds for inclusion
  * in a vote document. */
 char *
@@ -2829,6 +2837,8 @@ dirserv_read_measured_bandwidths(const char *from_file,
     if (fgets(line, sizeof(line), fp) && strlen(line)) {
       if (measured_bw_line_parse(&parsed_line, line) != -1) {
         /* Also cache the line for dirserv_get_bandwidth_for_router() */
+        // FXME: where to store the timestamp?
+        // file_time = timestamp is stored per relay, but not used in dirvote
         dirserv_cache_measured_bw(&parsed_line, file_time);
         if (measured_bw_line_apply(&parsed_line, routerstatuses) > 0)
           applied_lines++;
