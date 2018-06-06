@@ -1588,6 +1588,7 @@ options_act_reversible(const or_options_t *old_options, char **msg)
       log_warn(LD_GENERAL, "Your log may contain sensitive information - %s. "
                "Don't log unless it serves an important reason. "
                "Overwrite the log afterwards.", badness);
+    log_info(LD_DOS, "TEEESSSSSSSSSSTTTTTTTTT");
   }
 
   SMARTLIST_FOREACH(replaced_listeners, connection_t *, conn,

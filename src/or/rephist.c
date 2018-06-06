@@ -1018,6 +1018,7 @@ commit_max(bw_array_t *b)
   b->maxima[b->next_max_idx++] = b->max_total;
   /* Advance next_period and next_max_idx */
   b->next_period += NUM_SECS_BW_SUM_INTERVAL;
+  log_info(LD_DOS, "b->next_period %ld", b->next_period);
   if (b->next_max_idx == NUM_TOTALS)
     b->next_max_idx = 0;
   if (b->num_maxes_set < NUM_TOTALS)
@@ -1209,6 +1210,7 @@ rep_hist_bandwidth_assess(void)
   uint64_t w,r;
   r = find_largest_max(read_array);
   w = find_largest_max(write_array);
+  log_info(LD_DOS, "r %ld, w %ld", r, w);
   if (r>w)
     return (int)(U64_TO_DBL(w)/NUM_SECS_ROLLING_MEASURE);
   else

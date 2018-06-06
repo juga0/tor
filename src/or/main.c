@@ -2224,8 +2224,10 @@ check_descriptor_callback(time_t now, const or_options_t *options)
 
   (void)options;
 
+  log_info(LD_DOS, "Check descriptor callback");
   /* 2b. Once per minute, regenerate and upload the descriptor if the old
    * one is inaccurate. */
+  /* but with bandwidht it will only happen every 3h, refactor this? */
   if (!net_is_disabled()) {
     check_descriptor_bandwidth_changed(now);
     check_descriptor_ipaddress_changed(now);

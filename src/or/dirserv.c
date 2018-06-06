@@ -1787,10 +1787,13 @@ dirserv_get_credible_bandwidth_kb(const routerinfo_t *ri)
   /* Check if we have a measured bandwidth, and check the threshold if not */
   if (!(dirserv_query_measured_bw_cache_kb(ri->cache_info.identity_digest,
                                        &mbw_kb, NULL))) {
+    log_info(LD_DOS, "no measured bw");
     threshold = get_options()->MinMeasuredBWsForAuthToIgnoreAdvertised;
+    log_info(LD_DOS, "threshold %d", threshold);
     if (routers_with_measured_bw > threshold) {
       /* Return zero for unmeasured bandwidth if we are above threshold */
       bw_kb = 0;
+      log_info(LD_DOS, "bw_kb = 0!!!");
     } else {
       /* Return an advertised bandwidth otherwise */
       bw_kb = router_get_advertised_bandwidth_capped(ri) / 1000;
@@ -1798,6 +1801,7 @@ dirserv_get_credible_bandwidth_kb(const routerinfo_t *ri)
   } else {
     /* We have the measured bandwidth in mbw */
     bw_kb = (uint32_t)mbw_kb;
+    log_info(LD_DOS, "measured bw %d", bw_kb);
   }
 
   return bw_kb;

@@ -1632,7 +1632,7 @@ router_perform_bandwidth_test(int num_circs, time_t now)
   int cells_per_circuit = max_cells / num_circs;
   origin_circuit_t *circ = NULL;
 
-  log_notice(LD_OR,"Performing bandwidth self-test...done.");
+  log_info(LD_DOS,"Performing bandwidth self-test...done.");
   while ((circ = circuit_get_next_by_pk_and_purpose(circ, NULL,
                                               CIRCUIT_PURPOSE_TESTING))) {
     /* dump cells_per_circuit drop cells onto this circ */
@@ -2630,16 +2630,34 @@ check_descriptor_bandwidth_changed(time_t now)
 {
   static time_t last_changed = 0;
   uint64_t prev, cur;
+  /* If uptime is bigger of than 24h, assume that next regularly
+   * scheduled descriptor update will be enough (18h) */
+  log_info(LD_DOS, "Uptime: %ld", get_uptime());
+  if (get_uptime() > 60*60*24)
+    return;
+
   if (!router_get_my_routerinfo())
     return;
 
+  log_info(LD_DOS, "last_changed: %ld", last_changed);
   prev = router_get_my_routerinfo()->bandwidthcapacity;
+  log_info(LD_DOS, "Previous bw: %ld", prev);
   /* Consider ourselves to have zero bandwidth if we're hibernating or
    * shutting down. */
   cur = we_are_hibernating() ? 0 : rep_hist_bandwidth_assess();
+  log_info(LD_DOS, "Current bw: %ld", cur);
+  /* Check that there was not prev or not cur and they are different */
+  /* Check that the difference is 2x */
+  /* What about moving 2 to a constant in case we change it to for instance 4
+   * in the future? */
   if ((prev != cur && (!prev || !cur)) ||
       cur > prev*2 ||
       cur < prev/2) {
+
+    /* Check that there was not prev or last changed happened before the
+     * MAX_BANDWIDTH_CHANGE_FREQ */
+    /* Should we also check that this relay is large? */
+
     if (last_changed+MAX_BANDWIDTH_CHANGE_FREQ < now || !prev) {
       log_info(LD_GENERAL,
                "Measured bandwidth has changed; rebuilding descriptor.");
