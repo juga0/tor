@@ -68,6 +68,7 @@
 #include "lib/crypt_ops/crypto_format.h"
 #include "lib/crypt_ops/crypto_rand.h"
 #include "lib/encoding/confline.h"
+#include "lib/fs/files.h"
 #include "lib/memarea/memarea.h"
 #include "lib/osinfo/uname.h"
 #include "test/log_test_helpers.h"
@@ -2027,6 +2028,7 @@ test_dir_dirserv_read_measured_bandwidths(void *arg)
   tor_free(bw_file_headers_str);
 
  done:
+  tor_unlink(fname);
   tor_free(fname);
   tor_free(header_lines_v100);
   tor_free(header_lines_v110_no_terminator);
@@ -3858,6 +3860,140 @@ mock_get_options(void)
   ++mock_get_options_calls;
   tor_assert(mock_options);
   return mock_options;
+}
+
+/**
+ * Test dirauth_get_b64_digest_bw_file.
+ * This function should be near the other bwauth functions, but it needs
+ * mock_get_options, that is only defined here.
+ */
+
+static void
+test_dir_bwauth_bw_file_digest256(void *arg)
+{
+  (void)arg;
+  const char *content =
+    "1541171221\n"
+    "node_id=$68A483E05A2ABDCA6DA5A3EF8DB5177638A27F80 "
+    "master_key_ed25519=YaqV4vbvPYKucElk297eVdNArDz9HtIwUoIeo0+cVIpQ "
+    "bw=760 nick=Test time=2018-05-08T16:13:26\n";
+
+  char *fname = tor_strdup(get_fname("V3BandwidthsFile"));
+  /* Since digest are bytes, initialize to 0 so that it's easier to compare
+   * whether it has a value (0) */
+  uint8_t digest[DIGEST256_LEN] = {0};
+  /* Initialize to a wrong base 64 encoded digest. */
+  char b64_digest[BASE64_DIGEST256_LEN+1] =
+    "0123456789abcdefghijklmnopqrstuvwxyz0123456";
+  char *b64_digest_str = NULL;
+  char *b64_digest_algo_str = NULL;
+  char *vote_bw_file_digest_line = NULL;
+  const char *b64_digest_str_expected =
+    "J+9Lm7UT4FYWSIXgOJcAiIWbHBeiUl+0cmEOKpw7Fnk";
+  const char *bw_file_digest_line_expected =
+    "bandwidth-file-digest sha256=J+9Lm7UT4FYWSIXgOJcAiIWbHBeiUl+0cmEOKpw7Fnk"
+    "\n";
+
+  /* When there is not a bandwidth file configured */
+  tt_int_op(-1, OP_EQ,
+            dirserv_read_measured_bandwidths("",
+                                             NULL, NULL, digest));
+  tt_int_op(1, OP_EQ, tor_digest256_is_zero((const char *)digest));
+
+  /* When there is a bandwidth file configured, but it can not be found. */
+  tt_int_op(-1, OP_EQ,
+            dirserv_read_measured_bandwidths(fname,
+                                             NULL, NULL, digest));
+  tt_int_op(1, OP_EQ, tor_digest256_is_zero((const char *)digest));
+
+  /* When there is a timestamp but it is too old. */
+  write_str_to_file(fname, content, 0);
+  tt_int_op(-1, OP_EQ,
+            dirserv_read_measured_bandwidths(fname,
+                                             NULL, NULL, digest));
+  /* The digest will be correct. */
+  tt_int_op(0, OP_EQ, tor_digest256_is_zero((const char *)digest));
+
+  update_approx_time(1541171221);
+
+  /* When there is a bandwidth file and it can be read. */
+  tt_int_op(0, OP_EQ,
+            dirserv_read_measured_bandwidths(fname,
+                                             NULL, NULL, digest));
+  tt_int_op(0, OP_EQ, tor_digest256_is_zero((const char *)digest));
+
+  digest256_to_base64(b64_digest, (const char *)digest);
+  tor_asprintf(&b64_digest_str, "%s", b64_digest);
+  tt_str_op(b64_digest_str_expected, OP_EQ, b64_digest_str);
+
+  /* "bandwidth-file-digest" 1*(SP algorithm "=" digest) NL */
+  tor_asprintf(&b64_digest_algo_str, "%s=%s",
+              crypto_digest_algorithm_get_name(DIGEST_SHA256),
+              b64_digest_str);
+  tor_asprintf(&vote_bw_file_digest_line, "%s %s\n", "bandwidth-file-digest",
+               b64_digest_algo_str);
+  tt_str_op(bw_file_digest_line_expected, OP_EQ, vote_bw_file_digest_line);
+
+ done:
+  tor_unlink(fname);
+  tor_free(fname);
+  tor_free(b64_digest_str);
+  tor_free(b64_digest_algo_str);
+  tor_free(vote_bw_file_digest_line);
+}
+
+/**
+ * Test the format of "bandwidth-file-digest" in the votes.
+ * This should be in a format_networkstatus_vote test and do not duplicate
+ * code from the function.
+ */
+static void
+test_dir_dirvote_format_bw_file_digest_vote(void *arg)
+{
+  (void)arg;
+  const char *content =
+    "1541171221\n"
+    "node_id=$68A483E05A2ABDCA6DA5A3EF8DB5177638A27F80 "
+    "master_key_ed25519=YaqV4vbvPYKucElk297eVdNArDz9HtIwUoIeo0+cVIpQ "
+    "bw=760 nick=Test time=2018-05-08T16:13:26\n";
+  const char *b64_digest_bw_file_expected =
+    "HcZLCV92yJmAsjyZ0Gt0nWtG2qnCcOT6HgJ2BcvAKjk";
+  const char *bw_file_digest_expected = "bandwidth-file-digest "
+    "sha256=HcZLCV92yJmAsjyZ0Gt0nWtG2qnCcOT6HgJ2BcvAKjk\n";
+  uint8_t bw_file_digest255[DIGEST256_LEN];
+  char b64_digest_bw_file[BASE64_DIGEST256_LEN+1];
+  char *bw_file_digest = NULL;
+  char *digest_algo_b64_digest_bw_file = NULL;
+
+  /* Init options */
+  mock_options = tor_malloc(sizeof(or_options_t));
+  reset_options(mock_options, &mock_get_options_calls);
+  MOCK(get_options, mock_get_options);
+
+  mock_options->V3BandwidthsFile = tor_strdup(
+    get_fname_rnd("V3BandwidthsFile")
+  );
+  write_str_to_file(mock_options->V3BandwidthsFile, content, 0);
+  /* Compute the digest. */
+  bwauth_bw_file_digest255(bw_file_digest255, mock_options->V3BandwidthsFile,
+                           DIGEST_SHA256);
+  /* Encode the digest */
+  digest256_to_base64(b64_digest_bw_file, (const char *)bw_file_digest255);
+  tt_str_op(b64_digest_bw_file, OP_EQ, b64_digest_bw_file_expected);
+  /* "bandwidth-file-digest" 1*(SP algorithm "=" digest) NL */
+  tor_asprintf(&digest_algo_b64_digest_bw_file, "%s=%s",
+              crypto_digest_algorithm_get_name(DIGEST_SHA256),
+              b64_digest_bw_file);
+  tor_asprintf(&bw_file_digest, "%s %s\n", "bandwidth-file-digest",
+               digest_algo_b64_digest_bw_file);
+  tt_str_op(bw_file_digest, OP_EQ, bw_file_digest_expected);
+  goto done;
+
+ done:
+  UNMOCK(get_options);
+  or_options_free(mock_options); mock_options = NULL;
+  tor_free(digest_algo_b64_digest_bw_file);
+  tor_free(bw_file_digest);
 }
 
 static void
@@ -6441,6 +6577,7 @@ struct testcase_t dir_tests[] = {
   DIR_LEGACY(measured_bw_kb_line_is_after_headers),
   DIR_LEGACY(measured_bw_kb_cache),
   DIR_LEGACY(dirserv_read_measured_bandwidths),
+  DIR(bwauth_bw_file_digest256, 0),
   DIR_LEGACY(param_voting),
   DIR(param_voting_lookup, 0),
   DIR_LEGACY(v3_networkstatus),
