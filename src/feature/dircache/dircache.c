@@ -1457,7 +1457,7 @@ handle_get_next_bandwidth(dir_connection_t *conn,
     char *bandwidth = read_file_to_str(options->V3BandwidthsFile,
                                        RFTS_IGNORE_MISSING, NULL);
     if (bandwidth != NULL) {
-      int len = strlen(bandwidth);
+      size_t len = strlen(bandwidth);
       write_http_response_header(conn, len, compress_method,
                                  BANDWIDTH_CACHE_LIFETIME);
       if (compress_method != NO_METHOD)
