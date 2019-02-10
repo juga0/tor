@@ -1,4 +1,5 @@
-= Fuzzing Tor
+Fuzzing Tor
+============
 
 == The simple version (no fuzzing, only tests)
 
