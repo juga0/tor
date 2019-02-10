@@ -129,6 +129,9 @@ uptime-*.json
 /doc/spec/Makefile
 /doc/spec/Makefile.in
 
+# /doc/HACKING/
+/doc/HACKING/_build
+
 # /scripts
 /scripts/maint/checkOptionDocs.pl
 /scripts/maint/updateVersions.pl
