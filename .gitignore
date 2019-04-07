@@ -95,9 +95,10 @@ uptime-*.json
 /debian/tor.prerm.debhelper
 /debian/tor.substvars
 
-# /doc/
-/doc/Makefile
+# For the sphinx Makefile
+# /doc/Makefile
 /doc/Makefile.in
+/doc/build
 /doc/doxygen
 /doc/tor.1
 /doc/tor.1.in

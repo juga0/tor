@@ -1,0 +1,6 @@
+# Minimal requirements, other libraries are installed when these get installed.
+# Minor versions might work, but pip has the concept of XX
+breathe==4.12.0
+recommonmark==0.5.0
+Sphinx==1.8.0
+sphinx-bootstrap-theme==0.7.1
